@@ -1,7 +1,7 @@
 import type { DispensingRow, IncomingRow } from '@/types';
 import { storage } from '@/utils/storage';
 
-export const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = 'https://medalatau.com/api';
 
 interface LoginData {
   login: string;

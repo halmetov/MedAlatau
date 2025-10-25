@@ -383,15 +383,15 @@ def ensure_arrivals_schema():
 app = FastAPI(title="Warehouse Management System")
 
 # CORS middleware
-ALLOWED_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://192.168.8.246:8080",  # TODO: replace with the active frontend origin if different
-]
+# ALLOWED_ORIGINS = [
+#     "http://localhost:8080",
+#     "http://127.0.0.1:8080",
+#     "http://192.168.8.246:8080",  # TODO: replace with the active frontend origin if different
+# ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -409,7 +409,7 @@ async def startup_event():
         admin_user = DBUser(
             id="admin",
             login="admin",
-            password="admin",
+            password="Rustem_Alatau",
             role="admin"
         )
         db.add(admin_user)
@@ -454,7 +454,7 @@ async def startup_event():
         db.rollback()
 
 # Auth endpoints
-@app.post("/auth/login", response_model=LoginResponse)
+@app.post("/api/auth/login", response_model=LoginResponse)
 async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     # Check user login
     db_user = db.query(DBUser).filter(DBUser.login == login_data.login, DBUser.password == login_data.password).first()
@@ -468,12 +468,12 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 # User endpoints
-@app.get("/users", response_model=List[User])
+@app.get("/api/users", response_model=List[User])
 async def get_users(db: Session = Depends(get_db)):
     db_users = db.query(DBUser).all()
     return [User.model_validate(user) for user in db_users]
 
-@app.post("/users", response_model=User)
+@app.post("/api/users", response_model=User)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     # Check if user already exists
     existing_user = db.query(DBUser).filter(DBUser.login == user.login).first()
@@ -493,7 +493,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return User.model_validate(db_user)
 
-@app.put("/users/{user_id}", response_model=User)
+@app.put("/api/users/{user_id}", response_model=User)
 async def update_user(user_id: str, user: UserUpdate, db: Session = Depends(get_db)):
     db_user = db.query(DBUser).filter(DBUser.id == user_id).first()
     if not db_user:
@@ -506,7 +506,7 @@ async def update_user(user_id: str, user: UserUpdate, db: Session = Depends(get_
     db.refresh(db_user)
     return User.model_validate(db_user)
 
-@app.delete("/users/{user_id}")
+@app.delete("/api/users/{user_id}")
 async def delete_user(user_id: str, db: Session = Depends(get_db)):
     user = db.query(DBUser).filter(DBUser.id == user_id).first()
     if not user:
@@ -517,12 +517,12 @@ async def delete_user(user_id: str, db: Session = Depends(get_db)):
     return {"message": "User deleted"}
 
 # Branch endpoints
-@app.get("/branches", response_model=List[Branch])
+@app.get("/api/branches", response_model=List[Branch])
 async def get_branches(db: Session = Depends(get_db)):
     db_branches = db.query(DBBranch).all()
     return [Branch.model_validate(branch) for branch in db_branches]
 
-@app.post("/branches", response_model=Branch)
+@app.post("/api/branches", response_model=Branch)
 async def create_branch(branch: BranchCreate, db: Session = Depends(get_db)):
     branch_id = str(uuid.uuid4())
     db_branch = DBBranch(
@@ -547,7 +547,7 @@ async def create_branch(branch: BranchCreate, db: Session = Depends(get_db)):
     db.refresh(db_branch)
     return Branch.model_validate(db_branch)
 
-@app.put("/branches/{branch_id}", response_model=Branch)
+@app.put("/api/branches/{branch_id}", response_model=Branch)
 async def update_branch(branch_id: str, branch: BranchUpdate, db: Session = Depends(get_db)):
     db_branch = db.query(DBBranch).filter(DBBranch.id == branch_id).first()
     if not db_branch:
@@ -570,7 +570,7 @@ async def update_branch(branch_id: str, branch: BranchUpdate, db: Session = Depe
     db.refresh(db_branch)
     return Branch.model_validate(db_branch)
 
-@app.delete("/branches/{branch_id}")
+@app.delete("/api/branches/{branch_id}")
 async def delete_branch(branch_id: str, db: Session = Depends(get_db)):
     branch = db.query(DBBranch).filter(DBBranch.id == branch_id).first()
     if not branch:
@@ -586,7 +586,7 @@ async def delete_branch(branch_id: str, db: Session = Depends(get_db)):
     return {"message": "Branch deleted"}
 
 # Requisitions - branch endpoints
-@app.post("/branch/requisitions")
+@app.post("/api/branch/requisitions")
 async def create_branch_requisition(
     payload: CreateRequisitionIn,
     request: Request,
@@ -641,7 +641,7 @@ async def create_branch_requisition(
     return {"data": {"id": requisition.id, "status": requisition.status}}
 
 
-@app.get("/branch/requisitions")
+@app.get("/api/branch/requisitions")
 async def list_branch_requisitions(
     status: Optional[str] = Query(default=None),
     date_from: Optional[datetime] = Query(default=None),
@@ -677,7 +677,7 @@ async def list_branch_requisitions(
 
 
 # Requisitions - admin endpoints
-@app.get("/admin/requisitions")
+@app.get("/api/admin/requisitions")
 async def list_admin_requisitions(
     branch_id: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -708,7 +708,7 @@ async def list_admin_requisitions(
     return {"data": data}
 
 
-@app.get("/admin/requisitions/{requisition_id}")
+@app.get("/api/admin/requisitions/{requisition_id}")
 async def get_admin_requisition(
     requisition_id: str,
     db: Session = Depends(get_db),
@@ -728,7 +728,7 @@ async def get_admin_requisition(
     return {"data": serialize_requisition(requisition, db).model_dump()}
 
 
-@app.patch("/admin/requisitions/{requisition_id}/status")
+@app.patch("/api/admin/requisitions/{requisition_id}/status")
 async def update_admin_requisition_status(
     requisition_id: str,
     payload: UpdateRequisitionStatusIn,
@@ -768,7 +768,7 @@ async def update_admin_requisition_status(
 
 
 # Medicine endpoints
-@app.get("/medicines", response_model=List[Medicine])
+@app.get("/api/medicines", response_model=List[Medicine])
 async def get_medicines(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id and branch_id != "null" and branch_id != "undefined":
         db_medicines = db.query(DBMedicine).filter(DBMedicine.branch_id == branch_id).all()
@@ -776,7 +776,7 @@ async def get_medicines(branch_id: Optional[str] = None, db: Session = Depends(g
         db_medicines = db.query(DBMedicine).filter(DBMedicine.branch_id.is_(None)).all()
     return [Medicine.model_validate(medicine) for medicine in db_medicines]
 
-@app.post("/medicines", response_model=Medicine)
+@app.post("/api/medicines", response_model=Medicine)
 async def create_medicine(medicine: MedicineCreate, db: Session = Depends(get_db)):
     cat = db.query(DBCategory).filter(DBCategory.id == medicine.category_id).first()
     if not cat:
@@ -799,7 +799,7 @@ async def create_medicine(medicine: MedicineCreate, db: Session = Depends(get_db
     db.refresh(db_medicine)
     return Medicine.model_validate(db_medicine)
 
-@app.put("/medicines/{medicine_id}", response_model=Medicine)
+@app.put("/api/medicines/{medicine_id}", response_model=Medicine)
 async def update_medicine(medicine_id: str, medicine: MedicineUpdate, db: Session = Depends(get_db)):
     db_medicine = db.query(DBMedicine).filter(DBMedicine.id == medicine_id).first()
     if not db_medicine:
@@ -819,7 +819,7 @@ async def update_medicine(medicine_id: str, medicine: MedicineUpdate, db: Sessio
     db.refresh(db_medicine)
     return Medicine.model_validate(db_medicine)
 
-@app.delete("/medicines/{medicine_id}")
+@app.delete("/api/medicines/{medicine_id}")
 async def delete_medicine(medicine_id: str, db: Session = Depends(get_db)):
     medicine = db.query(DBMedicine).filter(DBMedicine.id == medicine_id).first()
     if not medicine:
@@ -830,7 +830,7 @@ async def delete_medicine(medicine_id: str, db: Session = Depends(get_db)):
     return {"message": "Medicine deleted"}
 
 # Medical Device endpoints
-@app.get("/medical_devices", response_model=List[MedicalDevice])
+@app.get("/api/medical_devices", response_model=List[MedicalDevice])
 async def get_medical_devices(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id and branch_id != "null" and branch_id != "undefined":
         db_devices = db.query(DBMedicalDevice).filter(DBMedicalDevice.branch_id == branch_id).all()
@@ -838,7 +838,7 @@ async def get_medical_devices(branch_id: Optional[str] = None, db: Session = Dep
         db_devices = db.query(DBMedicalDevice).filter(DBMedicalDevice.branch_id.is_(None)).all()
     return [MedicalDevice.model_validate(device) for device in db_devices]
 
-@app.post("/medical_devices", response_model=MedicalDevice)
+@app.post("/api/medical_devices", response_model=MedicalDevice)
 async def create_medical_device(device: MedicalDeviceCreate, db: Session = Depends(get_db)):
     cat = db.query(DBCategory).filter(DBCategory.id == device.category_id).first()
     if not cat:
@@ -861,7 +861,7 @@ async def create_medical_device(device: MedicalDeviceCreate, db: Session = Depen
     db.refresh(db_device)
     return MedicalDevice.model_validate(db_device)
 
-@app.put("/medical_devices/{device_id}", response_model=MedicalDevice)
+@app.put("/api/medical_devices/{device_id}", response_model=MedicalDevice)
 async def update_medical_device(device_id: str, device: MedicalDeviceUpdate, db: Session = Depends(get_db)):
     db_device = db.query(DBMedicalDevice).filter(DBMedicalDevice.id == device_id).first()
     if not db_device:
@@ -881,7 +881,7 @@ async def update_medical_device(device_id: str, device: MedicalDeviceUpdate, db:
     db.refresh(db_device)
     return MedicalDevice.model_validate(db_device)
 
-@app.delete("/medical_devices/{device_id}")
+@app.delete("/api/medical_devices/{device_id}")
 async def delete_medical_device(device_id: str, db: Session = Depends(get_db)):
     device = db.query(DBMedicalDevice).filter(DBMedicalDevice.id == device_id).first()
     if not device:
@@ -892,7 +892,7 @@ async def delete_medical_device(device_id: str, db: Session = Depends(get_db)):
     return {"message": "Medical device deleted"}
 
 # Category endpoints
-@app.get("/categories", response_model=List[dict])
+@app.get("/api/categories", response_model=List[dict])
 async def get_categories(type: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(DBCategory)
     if type:
@@ -900,7 +900,7 @@ async def get_categories(type: Optional[str] = None, db: Session = Depends(get_d
     categories = query.all()
     return [{"id": cat.id, "name": cat.name, "description": cat.description, "type": cat.type} for cat in categories]
 
-@app.post("/categories")
+@app.post("/api/categories")
 async def create_category(category: dict, db: Session = Depends(get_db)):
     category_id = str(uuid.uuid4())
     db_category = DBCategory(
@@ -914,7 +914,7 @@ async def create_category(category: dict, db: Session = Depends(get_db)):
     db.refresh(db_category)
     return {"id": db_category.id, "name": db_category.name, "description": db_category.description, "type": db_category.type}
 
-@app.put("/categories/{category_id}")
+@app.put("/api/categories/{category_id}")
 async def update_category(category_id: str, category: dict, db: Session = Depends(get_db)):
     db_category = db.query(DBCategory).filter(DBCategory.id == category_id).first()
     if not db_category:
@@ -928,7 +928,7 @@ async def update_category(category_id: str, category: dict, db: Session = Depend
     db.refresh(db_category)
     return {"id": db_category.id, "name": db_category.name, "description": db_category.description, "type": db_category.type}
 
-@app.delete("/categories/{category_id}")
+@app.delete("/api/categories/{category_id}")
 async def delete_category(category_id: str, db: Session = Depends(get_db)):
     category = db.query(DBCategory).filter(DBCategory.id == category_id).first()
     if not category:
@@ -939,7 +939,7 @@ async def delete_category(category_id: str, db: Session = Depends(get_db)):
     return {"message": "Category deleted"}
 
 # Employee endpoints
-@app.get("/employees", response_model=List[Employee])
+@app.get("/api/employees", response_model=List[Employee])
 async def get_employees(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id and branch_id != "null" and branch_id != "undefined":
         db_employees = db.query(DBEmployee).filter(DBEmployee.branch_id == branch_id).all()
@@ -947,7 +947,7 @@ async def get_employees(branch_id: Optional[str] = None, db: Session = Depends(g
         db_employees = db.query(DBEmployee).filter(DBEmployee.branch_id.is_(None)).all()
     return [Employee.model_validate(employee) for employee in db_employees]
 
-@app.post("/employees", response_model=Employee)
+@app.post("/api/employees", response_model=Employee)
 async def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db)):
     employee_id = str(uuid.uuid4())
     db_employee = DBEmployee(
@@ -963,7 +963,7 @@ async def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db
     db.refresh(db_employee)
     return Employee.model_validate(db_employee)
 
-@app.put("/employees/{employee_id}", response_model=Employee)
+@app.put("/api/employees/{employee_id}", response_model=Employee)
 async def update_employee(employee_id: str, employee: EmployeeUpdate, db: Session = Depends(get_db)):
     db_employee = db.query(DBEmployee).filter(DBEmployee.id == employee_id).first()
     if not db_employee:
@@ -976,7 +976,7 @@ async def update_employee(employee_id: str, employee: EmployeeUpdate, db: Sessio
     db.refresh(db_employee)
     return Employee.model_validate(db_employee)
 
-@app.delete("/employees/{employee_id}")
+@app.delete("/api/employees/{employee_id}")
 async def delete_employee(employee_id: str, db: Session = Depends(get_db)):
     employee = db.query(DBEmployee).filter(DBEmployee.id == employee_id).first()
     if not employee:
@@ -987,7 +987,7 @@ async def delete_employee(employee_id: str, db: Session = Depends(get_db)):
     return {"message": "Employee deleted"}
 
 # Patient endpoints
-@app.get("/patients", response_model=List[Patient])
+@app.get("/api/patients", response_model=List[Patient])
 async def get_patients(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id and branch_id != "null" and branch_id != "undefined":
         db_patients = db.query(DBPatient).filter(DBPatient.branch_id == branch_id).all()
@@ -995,7 +995,7 @@ async def get_patients(branch_id: Optional[str] = None, db: Session = Depends(ge
         db_patients = db.query(DBPatient).all()
     return [Patient.model_validate(patient) for patient in db_patients]
 
-@app.post("/patients", response_model=Patient)
+@app.post("/api/patients", response_model=Patient)
 async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
     patient_id = str(uuid.uuid4())
     db_patient = DBPatient(
@@ -1012,7 +1012,7 @@ async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
     db.refresh(db_patient)
     return Patient.model_validate(db_patient)
 
-@app.put("/patients/{patient_id}", response_model=Patient)
+@app.put("/api/patients/{patient_id}", response_model=Patient)
 async def update_patient(patient_id: str, patient: PatientUpdate, db: Session = Depends(get_db)):
     db_patient = db.query(DBPatient).filter(DBPatient.id == patient_id).first()
     if not db_patient:
@@ -1025,7 +1025,7 @@ async def update_patient(patient_id: str, patient: PatientUpdate, db: Session = 
     db.refresh(db_patient)
     return Patient.model_validate(db_patient)
 
-@app.delete("/patients/{patient_id}")
+@app.delete("/api/patients/{patient_id}")
 async def delete_patient(patient_id: str, db: Session = Depends(get_db)):
     patient = db.query(DBPatient).filter(DBPatient.id == patient_id).first()
     if not patient:
@@ -1036,7 +1036,7 @@ async def delete_patient(patient_id: str, db: Session = Depends(get_db)):
     return {"message": "Patient deleted"}
 
 # Transfer endpoints
-@app.get("/transfers", response_model=List[Transfer])
+@app.get("/api/transfers", response_model=List[Transfer])
 async def get_transfers(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id and branch_id != "null" and branch_id != "undefined":
         db_transfers = db.query(DBTransfer).filter(DBTransfer.to_branch_id == branch_id).all()
@@ -1044,7 +1044,7 @@ async def get_transfers(branch_id: Optional[str] = None, db: Session = Depends(g
         db_transfers = db.query(DBTransfer).all()
     return [Transfer.model_validate(transfer) for transfer in db_transfers]
 
-@app.post("/transfers")
+@app.post("/api/transfers")
 async def create_transfers(batch: BatchTransferCreate, db: Session = Depends(get_db)):
     try:
         for transfer_data in batch.transfers:
@@ -1098,7 +1098,7 @@ async def create_transfers(batch: BatchTransferCreate, db: Session = Depends(get
         raise HTTPException(status_code=400, detail=str(e))
 
 # Shipment endpoints
-@app.get("/shipments")
+@app.get("/api/shipments")
 async def get_shipments(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id and branch_id != "null" and branch_id != "undefined":
         shipments = db.query(DBShipment).filter(DBShipment.to_branch_id == branch_id).all()
@@ -1138,7 +1138,7 @@ async def get_shipments(branch_id: Optional[str] = None, db: Session = Depends(g
     
     return {"data": result}
 
-@app.get("/dispensing_records/{record_id}")
+@app.get("/api/dispensing_records/{record_id}")
 async def get_dispensing_record_detail(record_id: str, db: Session = Depends(get_db)):
     record = (
         db.query(DBDispensingRecord, DBBranch)
@@ -1172,7 +1172,7 @@ async def get_dispensing_record_detail(record_id: str, db: Session = Depends(get
     }
     return {"data": data}
 
-@app.post("/shipments")
+@app.post("/api/shipments")
 async def create_shipment(shipment_data: dict, db: Session = Depends(get_db)):
     try:
         shipment_id = str(uuid.uuid4())
@@ -1245,7 +1245,7 @@ async def create_shipment(shipment_data: dict, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/shipments/{shipment_id}/accept")
+@app.post("/api/shipments/{shipment_id}/accept")
 async def accept_shipment(shipment_id: str, db: Session = Depends(get_db)):
     try:
         shipment = db.query(DBShipment).filter(DBShipment.id == shipment_id).first()
@@ -1321,7 +1321,7 @@ async def accept_shipment(shipment_id: str, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/shipments/{shipment_id}/reject")
+@app.post("/api/shipments/{shipment_id}/reject")
 async def reject_shipment(shipment_id: str, reason: dict, db: Session = Depends(get_db)):
     shipment = db.query(DBShipment).filter(DBShipment.id == shipment_id).first()
     if not shipment:
@@ -1332,7 +1332,7 @@ async def reject_shipment(shipment_id: str, reason: dict, db: Session = Depends(
     db.commit()
     return {"message": "Shipment rejected"}
 
-@app.put("/shipments/{shipment_id}/status")
+@app.put("/api/shipments/{shipment_id}/status")
 async def update_shipment_status(shipment_id: str, status_data: dict, db: Session = Depends(get_db)):
     shipment = db.query(DBShipment).filter(DBShipment.id == shipment_id).first()
     if not shipment:
@@ -1343,7 +1343,7 @@ async def update_shipment_status(shipment_id: str, status_data: dict, db: Sessio
     return {"message": "Shipment status updated"}
 
 
-@app.get("/admin/warehouse/shipments/{shipment_id}/waybill")
+@app.get("/api/admin/warehouse/shipments/{shipment_id}/waybill")
 def download_shipment_waybill(
     shipment_id: str,
     format: str = Query("pdf", description="pdf | html"),
@@ -1369,7 +1369,7 @@ def download_shipment_waybill(
 
 
 # Notification endpoints
-@app.get("/notifications")
+@app.get("/api/notifications")
 async def get_notifications(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id:
         notifications = db.query(DBNotification).filter(DBNotification.branch_id == branch_id).order_by(DBNotification.created_at.desc()).all()
@@ -1390,7 +1390,7 @@ async def get_notifications(branch_id: Optional[str] = None, db: Session = Depen
         ]
     }
 
-@app.put("/notifications/{notification_id}/read")
+@app.put("/api/notifications/{notification_id}/read")
 async def mark_notification_read(notification_id: str, db: Session = Depends(get_db)):
     notification = db.query(DBNotification).filter(DBNotification.id == notification_id).first()
     if not notification:
@@ -1401,7 +1401,7 @@ async def mark_notification_read(notification_id: str, db: Session = Depends(get
     return {"message": "Notification marked as read"}
 
 # Dispensing endpoints
-@app.get("/dispensing_records")
+@app.get("/api/dispensing_records")
 async def get_dispensing_records(branch_id: Optional[str] = None, db: Session = Depends(get_db)):
     if branch_id and branch_id != "null" and branch_id != "undefined":
         records = db.query(DBDispensingRecord).filter(DBDispensingRecord.branch_id == branch_id).all()
@@ -1562,7 +1562,7 @@ async def create_dispensing_record(payload: dict, db: Session = Depends(get_db))
         raise HTTPException(status_code=500, detail="Failed to create dispensing")
 
 # Arrival endpoints
-@app.get("/arrivals")
+@app.get("/api/arrivals")
 async def get_arrivals(item_type: Optional[str] = None, db: Session = Depends(get_db)):
     q = db.query(DBArrival)
     if item_type:
@@ -1570,7 +1570,7 @@ async def get_arrivals(item_type: Optional[str] = None, db: Session = Depends(ge
     rows = q.all()
     return {"data": [Arrival.model_validate(x) for x in rows]}
 
-@app.post("/arrivals")
+@app.post("/api/arrivals")
 async def create_arrivals(batch: BatchArrivalCreate, db: Session = Depends(get_db)):
     try:
         for it in batch.arrivals:
@@ -1608,7 +1608,7 @@ async def create_arrivals(batch: BatchArrivalCreate, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail=str(e))
 
 # Report endpoints
-@app.post("/reports/generate")
+@app.post("/api/reports/generate")
 async def generate_report(request: ReportRequest, db: Session = Depends(get_db)):
     try:
         report_data = []
@@ -1735,7 +1735,7 @@ async def generate_report(request: ReportRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/reports/dispensing")
+@app.get("/api/reports/dispensing")
 async def get_dispensing_report(
     branch_id: str,
     date_from: str,
@@ -1786,7 +1786,7 @@ async def get_dispensing_report(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/reports/incoming")
+@app.get("/api/reports/incoming")
 async def get_incoming_report(
     branch_id: str,
     date_from: str,
@@ -1836,7 +1836,7 @@ async def get_incoming_report(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/reports/dispensing/export")
+@app.get("/api/reports/dispensing/export")
 async def export_dispensing_report(
     branch_id: str,
     date_from: str,
@@ -1880,7 +1880,7 @@ async def export_dispensing_report(
     )
 
 
-@app.get("/reports/incoming/export")
+@app.get("/api/reports/incoming/export")
 async def export_incoming_report(
     branch_id: str,
     date_from: str,
@@ -1918,7 +1918,7 @@ async def export_incoming_report(
     )
 
 
-@app.get("/reports/dispensings")
+@app.get("/api/reports/dispensings")
 async def get_dispensings_report(
     request: Request,
     branch_id: str = Query(...),
@@ -2240,7 +2240,7 @@ def build_arrivals_json_payload(
     return {"data": data}
 
 
-@app.get("/reports/arrivals")
+@app.get("/api/reports/arrivals")
 def get_arrivals_report(
     request: Request,
     branch_id: str | None = Query(None),
@@ -2618,7 +2618,7 @@ def build_wh_dispatches_json(
     return {"data": json_rows}
 
 
-@app.get("/admin/warehouse/reports/stock")
+@app.get("/api/admin/warehouse/reports/stock")
 def admin_warehouse_stock(
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
@@ -2712,7 +2712,7 @@ def admin_warehouse_stock(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/admin/warehouse/reports/arrivals")
+@app.get("/api/admin/warehouse/reports/arrivals")
 def admin_wh_arrivals(
     request: Request,
     branch_id: Optional[str] = Query(None),
@@ -2750,7 +2750,7 @@ def admin_wh_arrivals(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/admin/warehouse/reports/dispatches")
+@app.get("/api/admin/warehouse/reports/dispatches")
 def admin_wh_dispatches(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -2788,7 +2788,7 @@ def admin_wh_dispatches(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/reports/stock")
+@app.get("/api/reports/stock")
 def get_stock_report(
     branch_id: str,
     date_from: str | None = None,
@@ -2900,7 +2900,7 @@ def get_stock_report(
         return {"data": rows}
 
 
-@app.get("/reports/stock/export")
+@app.get("/api/reports/stock/export")
 def export_stock_xlsx(
     branch_id: str = Query(...),
     date_from: Optional[str] = Query(None),
@@ -2940,7 +2940,7 @@ def export_stock_xlsx(
     )
 
 
-@app.get("/reports/stock/item_details")
+@app.get("/api/reports/stock/item_details")
 async def get_stock_item_details(
     branch_id: str,
     type: str,
@@ -3016,7 +3016,7 @@ async def get_stock_item_details(
         raise HTTPException(status_code=400, detail=str(e))
 
 # Calendar endpoints
-@app.get("/calendar/dispensing")
+@app.get("/api/calendar/dispensing")
 async def get_calendar_dispensing(
     start: Optional[str] = None,
     end: Optional[str] = None,
@@ -3143,7 +3143,7 @@ async def get_calendar_dispensing(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/calendar/dispensing/day")
+@app.get("/api/calendar/dispensing/day")
 async def get_calendar_dispensing_day(
     branch_id: str,
     patient_id: str,
@@ -3202,7 +3202,7 @@ async def get_calendar_dispensing_day(
 tracking = APIRouter(prefix="/admin/tracking", tags=["tracking"])
 
 
-@tracking.get("/payroll")
+@tracking.get("/api/payroll")
 def list_payroll(
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
@@ -3240,7 +3240,7 @@ def list_payroll(
     }
 
 
-@tracking.post("/payroll")
+@tracking.post("/api/payroll")
 def create_payroll(item: dict, db: Session = Depends(get_db)):
     first_name = item.get("first_name", "").strip()
     last_name = item.get("last_name", "").strip()
@@ -3280,7 +3280,7 @@ def create_payroll(item: dict, db: Session = Depends(get_db)):
     return {"ok": True, "id": record.id}
 
 
-@tracking.get("/expenses")
+@tracking.get("/api/expenses")
 def list_expenses(
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
@@ -3317,7 +3317,7 @@ def list_expenses(
     }
 
 
-@tracking.post("/expenses")
+@tracking.post("/api/expenses")
 def create_expense(item: dict, db: Session = Depends(get_db)):
     title = item.get("title", "").strip()
     if not title:
@@ -3353,7 +3353,7 @@ def create_expense(item: dict, db: Session = Depends(get_db)):
     return {"ok": True, "id": record.id}
 
 
-@tracking.get("/report")
+@tracking.get("/api/report")
 def tracking_report(
     date_from: str = Query(...),
     date_to: str = Query(...),
@@ -3462,4 +3462,4 @@ app.include_router(tracking)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8887)
